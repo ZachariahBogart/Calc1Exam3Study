@@ -13,6 +13,9 @@
         window.MathJax = {
             tex: {
                 inlineMath: [['$', '$'], ['\\(', '\\)']]
+            },
+            startup: {
+                typeset: false 
             }
         };
     </script>
@@ -86,6 +89,16 @@
         .chart-wrapper { position: relative; height: 200px; width: 100%; }
         .toggle-checkbox:checked { right: 0; border-color: #68D391; }
         .toggle-checkbox:checked + .toggle-label { background-color: #68D391; }
+        
+        /* Learning Mode Styles */
+        .tutorial-content h3 { @apply text-xl font-bold text-gray-900 mt-6 mb-3; }
+        .tutorial-content p { @apply text-gray-700 mb-4 leading-relaxed; }
+        .tutorial-content ul, .tutorial-content ol { @apply ml-6 mb-4 list-outside text-gray-700; }
+        .tutorial-content ul { @apply list-disc; }
+        .tutorial-content ol { @apply list-decimal; }
+        .tutorial-content li { @apply mb-2; }
+        .tutorial-box { @apply bg-blue-50 border-l-4 border-blue-500 p-4 my-6 rounded-r-lg; }
+        .tutorial-warn { @apply bg-amber-50 border-l-4 border-amber-500 p-4 my-6 rounded-r-lg; }
     </style>
 </head>
 <body class="bg-gray-50 h-screen flex flex-col md:flex-row overflow-hidden">
@@ -146,7 +159,7 @@
                         <canvas id="masteryChart"></canvas>
                     </div>
                     <div class="mt-4 text-center">
-                        <p class="text-3xl font-bold text-blue-600" id="total-score-display">0/20</p>
+                        <p class="text-3xl font-bold text-blue-600" id="total-score-display">0/28</p>
                         <p class="text-xs text-gray-500">Questions Mastered</p>
                     </div>
                 </div>
@@ -189,18 +202,25 @@
                     <h2 class="text-3xl font-bold text-gray-900" id="topic-title">Topic Title</h2>
                     <p class="text-gray-600" id="topic-desc">Description</p>
                 </div>
-                <div class="flex items-center gap-4">
+                <div class="flex items-center gap-2">
                     <!-- Mode Switcher -->
                     <div class="bg-white p-1 rounded-lg border shadow-sm flex">
-                        <button onclick="window.app.setMode('study')" id="btn-mode-study" class="px-4 py-2 rounded-md text-sm font-medium transition-all bg-gray-100 text-gray-900 shadow-sm">📖 Study</button>
-                        <button onclick="window.app.setMode('practice')" id="btn-mode-practice" class="px-4 py-2 rounded-md text-sm font-medium transition-all text-gray-500 hover:text-gray-900">⚡ Practice</button>
+                         <button onclick="window.app.setMode('learning')" id="btn-mode-learning" class="px-3 py-2 rounded-md text-sm font-medium transition-all text-gray-500 hover:text-gray-900 flex items-center gap-1">
+                            🎓 Learning
+                        </button>
+                        <button onclick="window.app.setMode('study')" id="btn-mode-study" class="px-3 py-2 rounded-md text-sm font-medium transition-all bg-gray-100 text-gray-900 shadow-sm flex items-center gap-1">
+                            📖 Study
+                        </button>
+                        <button onclick="window.app.setMode('practice')" id="btn-mode-practice" class="px-3 py-2 rounded-md text-sm font-medium transition-all text-gray-500 hover:text-gray-900 flex items-center gap-1">
+                            ⚡ Practice
+                        </button>
                     </div>
                 </div>
             </div>
 
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                <!-- LEFT: Concepts (Sticky) -->
-                <div class="lg:col-span-4">
+                <!-- LEFT: Concepts (Sticky) - Hidden in Learning Mode to give full width -->
+                <div class="lg:col-span-4" id="sidebar-column">
                     <div class="bg-white p-6 rounded-xl shadow-md border-l-4 sticky top-24" id="concept-card-style">
                         <h3 class="font-bold text-xl mb-4 flex items-center" id="concept-title">
                             💡 Key Concepts
@@ -211,8 +231,9 @@
                     </div>
                 </div>
 
-                <!-- RIGHT: Questions Container -->
-                <div class="lg:col-span-8">
+                <!-- RIGHT: Content Container -->
+                <div class="lg:col-span-8" id="content-column">
+                    
                     <!-- STUDY MODE LIST -->
                     <div id="study-mode-content" class="space-y-6"></div>
 
@@ -228,6 +249,12 @@
                         </div>
                         <div id="generated-question-container" class="hidden"></div>
                     </div>
+
+                    <!-- LEARNING MODE CONTENT -->
+                    <div id="learning-mode-content" class="hidden bg-white p-8 rounded-xl shadow-sm border border-gray-200 tutorial-content animate-fade-in">
+                        <!-- Tutorial injected here -->
+                    </div>
+
                 </div>
             </div>
         </div>
@@ -312,9 +339,43 @@
                         <li>$f'(x) = 0$. Find critical numbers.</li>
                     </ol>
                 `,
+                tutorial: `
+                    <h3>Step 1: The Setup</h3>
+                    <p>Optimization is about translating a word problem into math. You always have two equations:</p>
+                    <div class="tutorial-box">
+                        <strong>1. The Constraint:</strong> The thing that is "fixed" or "limited".<br>
+                        <em>Example:</em> "A fence of 100m" $\\to 2x + 2y = 100$.<br><br>
+                        <strong>2. The Objective:</strong> The thing you want to Maximize or Minimize.<br>
+                        <em>Example:</em> "Maximize Area" $\\to A = x \\cdot y$.
+                    </div>
+                    
+                    <h3>Step 2: The Merge</h3>
+                    <p>Calculus only works on one variable at a time. You must combine your equations.</p>
+                    <ul>
+                        <li>Solve the Constraint for $y$: $y = 50 - x$.</li>
+                        <li>Plug it into the Objective: $A(x) = x(50-x) = 50x - x^2$.</li>
+                    </ul>
+                    
+                    <h3>Step 3: The Calculus</h3>
+                    <p>To find the peak (max) or valley (min), find where the slope is zero.</p>
+                    <ul>
+                        <li>Take derivative: $A'(x) = 50 - 2x$.</li>
+                        <li>Set to zero: $50 - 2x = 0 \\implies x = 25$.</li>
+                        <li>Solve for y: $y = 50 - 25 = 25$.</li>
+                    </ul>
+                    
+                    <div class="tutorial-warn">
+                        <strong>Exam Trap:</strong> Don't forget to verify! Use the <strong>Second Derivative Test</strong>.
+                        <br> $A''(x) = -2$. Negative means "Concave Down" (frown), which means you found a <strong>MAX</strong>.
+                    </div>
+                `,
                 questions: [
                     { id: "q1", type: "tf", points: 2, question: "True/False: If c is a critical number and $f''(c)=0$, then f has neither a max nor min at c.", options: ["True", "False"], correct: 1, explanation: "False. Inconclusive." },
+                    { id: "q2", type: "tf", points: 2, question: "True/False: If x=6 is critical and $f''(6)=4$, then f(6) is a local MAX.", options: ["True", "False"], correct: 1, explanation: "False. $f''>0$ is Concave Up (smiley face), so it is a MIN." },
+                    { id: "q5", type: "mc", points: 4, question: "$f'(x) = \\frac{(x-3)(x+5)}{x-4}$. At x=3, f(x) has:", options: ["Local Max", "Local Min", "Neither", "Both"], correct: 0, explanation: "Critical number at x=3. Test signs: $f'(2.9)>0$, $f'(3.1)<0$. + to - means Max." },
+                    { id: "q6", type: "mc", points: 4, question: "$f''(x) = x(x-3)^2$. Inflection points at:", options: ["x=0 and x=3", "x=3 only", "x=0 only", "None"], correct: 2, explanation: "Inflection point needs $f''$ to change sign. At x=3, $(x-3)^2$ stays positive (bounce). At x=0, sign changes." },
                     { id: "q7", type: "chart", points: 4, question: "The graph of derivative $f'(x)$ is shown. Where is the local max?", chartId: "chartQ7", options: ["x=1", "x=2", "x=3", "x=4"], correct: 3, explanation: "Local Max where $f'$ changes + to -." },
+                    { id: "q8", type: "chart", points: 4, question: "Graph of f(x). Where are $f'<0$ AND $f''<0$?", chartId: "chartQ12", options: ["A", "B", "C", "D"], correct: 2, explanation: "Need Decreasing ($f'<0$) and Concave Down ($f''<0$). This is point C." },
                     { 
                         id: "q24", type: "frq", points: 10, title: "Captain Efficiency",
                         question: "Minimize Energy. Swim cost = 2x run cost. Canal width $\\sqrt{300}$. Run $x$, swim to point 40m downstream. Find $x$.",
@@ -331,9 +392,42 @@
             },
             'ftc': {
                 title: "FTC & Integrals", desc: "The Fundamental Theorem.", color: "green", concepts: "Part 1 & 2.",
+                tutorial: `
+                    <h3>The Two Sides of the Coin</h3>
+                    <p>The Fundamental Theorem of Calculus (FTC) connects the two main branches of calculus: Derivatives (slope) and Integrals (area).</p>
+                    
+                    <div class="tutorial-box">
+                        <strong>Part 1: Derivatives of Integrals</strong><br>
+                        Differentiation and Integration cancel each other out.<br>
+                        $\\frac{d}{dx} \\int_a^x f(t) dt = f(x)$
+                    </div>
+                    
+                    <h3>The Chain Rule Twist</h3>
+                    <p>If the upper limit is not just $x$, but a function $g(x)$ (like $x^3$), you MUST use the Chain Rule.</p>
+                    <p><strong>Formula:</strong> $\\frac{d}{dx} \\int_a^{g(x)} f(t) dt = f(g(x)) \\cdot g'(x)$.</p>
+                    <p><em>Example:</em> $\\frac{d}{dx} \\int_1^{x^2} \\cos(t) dt = \\cos(x^2) \\cdot 2x$.</p>
+                    
+                    <div class="tutorial-box">
+                        <strong>Part 2: Evaluating Integrals</strong><br>
+                        To find the exact area under $f(x)$ from a to b:<br>
+                        1. Find the Antiderivative $F(x)$.<br>
+                        2. Calculate $F(b) - F(a)$.
+                    </div>
+                    
+                    <div class="tutorial-warn">
+                        <strong>Exam Trap:</strong> When calculating Area between curves or signed area, remember: Area below the x-axis is <strong>negative</strong> in an integral. If the question asks for "Total Area", you must take the absolute value of the negative parts.
+                    </div>
+                `,
                 questions: [
+                    { id: "q3", type: "tf", points: 2, question: "True/False: If $f(x) \\le 4$ for all x in [2,5], then $\\int_2^5 f(x) dx \\le 4$.", options: ["True", "False"], correct: 1, explanation: "False. The integral is $\\le 4(5-2) = 12$. Area is height * width." },
+                    { id: "q4", type: "tf", points: 2, question: "True/False: $\\int_1^5 = \\int_1^7 - \\int_5^7$.", options: ["True", "False"], correct: 0, explanation: "True. Area(1 to 7) minus Area(5 to 7) leaves Area(1 to 5)." },
                     { id: "q11", type: "mc", points: 4, question: "If $g(x)=\\int_{4}^{x}\\frac{1}{1+t}dt$, find $g'(2)$.", options: ["4/3", "2/5", "1/3", "1/5"], correct: 2, explanation: "1/3." },
                     { id: "q12", type: "chart", points: 4, question: "Evaluate $\\int_{1}^{8}f(x)dx$ using the graph.", chartId: "chartQ12", options: ["-5", "-3", "-2", "4"], correct: 2, explanation: "-2." },
+                    { id: "q13", type: "mc", points: 4, question: "Given $\\int_0^3 f(x)dx = 4$. Find $\\int_0^3 (5 - 2f(x))dx$.", options: ["-5", "-3", "1", "7"], correct: 3, explanation: "$\\int 5 - 2\\int f = [5x]_0^3 - 2(4) = 15 - 8 = 7$." },
+                    { id: "q15", type: "mc", points: 4, question: "Evaluate $\\int_{-1}^{2}x^{3}dx$", options: ["1/4", "9/4", "15/4", "25/4"], correct: 2, explanation: "15/4." },
+                    { id: "q16", type: "mc", points: 4, question: "Evaluate $\\int_2^4 x^{-3} dx$", options: ["-1/8", "-1/16", "3/32", "1/4"], correct: 2, explanation: "Antideriv $-1/(2x^2)$. F(4)-F(2) = 3/32." },
+                    { id: "q17", type: "mc", points: 4, question: "Evaluate piecewise integral.", options: ["4", "8/3", "2", "5/3"], correct: 3, explanation: "Split at x=1. $\\int_0^1 (2-x^2) + \\int_1^2 x^2$. Answer 5/3." },
+                    { id: "q18", type: "mc", points: 4, question: "Evaluate $\\int_1^4 (x^{1/2} + x^{-1/2}) dx$.", options: ["4/3", "8/3", "10/3", "20/3"], correct: 3, explanation: "20/3." },
                     { 
                         id: "q_ftc_new1", type: "mc", points: 5, title: "Chain Rule (New)",
                         question: "Find $\\frac{d}{dx} \\int_1^{x^3} \\sin(t) dt$.",
@@ -350,7 +444,29 @@
             },
             'substitution': {
                 title: "Substitution Rule", desc: "Reverse Chain Rule.", color: "amber", concepts: "Pick u, du, Bounds.",
+                tutorial: `
+                    <h3>The "Reverse Chain Rule"</h3>
+                    <p>Use U-Substitution when you see a function <em>inside</em> another function, AND its derivative is also present.</p>
+                    
+                    <h3>The 4-Step Algorithm</h3>
+                    <ol>
+                        <li><strong>Pick $u$:</strong> Usually the term inside the square root, parenthesis, or exponent. <br><em>Ex:</em> For $\\int 2x \\cos(x^2) dx$, pick $u = x^2$.</li>
+                        <li><strong>Find $du$:</strong> Take derivative of $u$. Solve for $dx$.<br><em>Ex:</em> $du = 2x dx \\implies dx = \\frac{du}{2x}$.</li>
+                        <li><strong>Swap:</strong> Replace $u$ and $dx$. The $x$'s should cancel out.<br><em>Ex:</em> $\\int 2x \\cos(u) \\frac{du}{2x} = \\int \\cos(u) du$.</li>
+                        <li><strong>Integrate:</strong> $\\sin(u) + C$. Then switch back to $x$ (for indefinite) or calculate bounds (for definite).</li>
+                    </ol>
+                    
+                    <div class="tutorial-warn">
+                        <strong>CRITICAL STEP (Definite Integrals):</strong><br>
+                        If the integral has bounds $\\int_a^b$, you <strong>MUST</strong> convert them to $u$-values.<br>
+                        $u_{lower} = u(a)$ and $u_{upper} = u(b)$.<br>
+                        Once you change the bounds, you <strong>never</strong> have to go back to $x$. Just calculate the answer with $u$.
+                    </div>
+                `,
                 questions: [
+                    { id: "q19", type: "mc", points: 4, question: "$\\int x^2 \\cos(x^3) dx$", options: ["$x^3 \\sin x$", "$\\frac{1}{3} \\sin(x^3) + C$", "$\\sin(x^3) + C$"], correct: 1, explanation: "u=x^3." },
+                    { id: "q20", type: "mc", points: 4, question: "$\\int_0^\\pi \\sin(x/2) dx$", options: ["0", "1", "2", "4"], correct: 2, explanation: "2." },
+                    { id: "q21", type: "mc", points: 4, question: "$\\int_0^2 \\frac{16}{\\sqrt{9+8t}} dt$", options: ["4", "8", "8\\sqrt{2}", "16"], correct: 0, explanation: "u=9+8t. Answer 4." },
                     { id: "q22", type: "mc", points: 4, question: "Transform $\\int_{2}^{3}\\frac{x}{6+x^{2}}dx$ using $u=6+x^2$.", options: ["$\\int_{2}^{3}\\frac{1}{2u}du$", "$\\int_{10}^{15}\\frac{1}{u}du$", "$\\int_{10}^{15}\\frac{1}{2u}du$"], correct: 2, explanation: "Bounds 10 to 15." },
                     { 
                         id: "q23", type: "frq", points: 10, title: "Tricky Substitution",
@@ -368,7 +484,31 @@
             },
             'riemann': {
                 title: "Riemann Sums", desc: "Approximating Area.", color: "purple", concepts: "Width * Height.",
+                tutorial: `
+                    <h3>Approximating Area</h3>
+                    <p>Before we had integrals, we had rectangles. We estimate the area under a curve by slicing it into $n$ rectangles.</p>
+                    
+                    <div class="tutorial-box">
+                        <strong>1. The Width ($\\Delta x$):</strong><br>
+                        $\\Delta x = \\frac{b-a}{n}$ (Total distance divided by number of rectangles)
+                    </div>
+                    
+                    <div class="tutorial-box">
+                        <strong>2. The Height ($f(x^*)$):</strong><br>
+                        Depends on which rule you use:<br>
+                        <ul>
+                            <li><strong>Right Hand Rule:</strong> Use right endpoint. $x_i = a + i\\Delta x$.</li>
+                            <li><strong>Left Hand Rule:</strong> Use left endpoint. $x_i = a + (i-1)\\Delta x$.</li>
+                            <li><strong>Midpoint Rule:</strong> Use the middle.</li>
+                        </ul>
+                    </div>
+                    
+                    <h3>The Sigma Notation</h3>
+                    <p>The limit definition of an integral is simply adding up infinite, tiny rectangles:</p>
+                    <p>$\\int_a^b f(x) dx = \\lim_{n \\to \\infty} \\sum_{i=1}^n f(x_i) \\Delta x$</p>
+                `,
                 questions: [ 
+                    { id: "q9", type: "mc", points: 4, question: "Limit def for $\\int_2^8 \\tan x dx$", options: ["A", "B", "C", "D"], correct: 3, explanation: "Width 6/n. Start 2." },
                     { id: "q10", type: "chart", points: 4, question: "Find $R_4$ for [3,15] from graph.", chartId: "chartQ10", options: ["54", "45", "33", "11"], correct: 2, explanation: "Sum = 33." },
                     {
                         id: "q_riem_new1", type: "mc", points: 5, title: "Table Estimation (New)",
@@ -380,6 +520,30 @@
             },
             'antiderivatives': {
                 title: "Antiderivatives", desc: "Finding F(x).", color: "gray", concepts: "+C rule.",
+                tutorial: `
+                    <h3>Thinking Backwards</h3>
+                    <p>If differentiation is breaking a wall down, integration (finding the antiderivative) is building it back up.</p>
+                    
+                    <div class="tutorial-box">
+                        <strong>The Power Rule (Reverse):</strong><br>
+                        Add 1 to the exponent, then divide by the new exponent.<br>
+                        $\\int x^n dx = \\frac{x^{n+1}}{n+1} + C$
+                    </div>
+                    
+                    <h3>Common Rules to Memorize</h3>
+                    <ul>
+                        <li>$\\int \\sin(x) dx = -\\cos(x) + C$ (Don't forget the negative!)</li>
+                        <li>$\\int \\cos(x) dx = \\sin(x) + C$</li>
+                        <li>$\\int \\sec^2(x) dx = \\tan(x) + C$</li>
+                        <li>$\\int \\frac{1}{x} dx = \\ln|x| + C$</li>
+                        <li>$\\int e^x dx = e^x + C$</li>
+                    </ul>
+                    
+                    <div class="tutorial-warn">
+                        <strong>Don't Forget +C!</strong><br>
+                        Indefinite integrals represent a <em>family</em> of functions. Without the $+C$, you are only finding one specific curve, which is incorrect.
+                    </div>
+                `,
                 questions: [ 
                     { id: "q14", type: "mc", points: 4, question: "If $f'(x)=3+2\\sin x$ and $f(0)=7$, find $f(\\pi)$.", options: ["$3\\pi+13$", "$3\\pi+11$", "$3\\pi+9$"], correct: 1, explanation: "C=9, Answer $3\\pi+11$." },
                     {
@@ -421,16 +585,47 @@
                 this.currentMode = mode;
                 const study = document.getElementById('study-mode-content');
                 const practice = document.getElementById('practice-mode-content');
+                const learning = document.getElementById('learning-mode-content');
+                const sideCol = document.getElementById('sidebar-column');
+                const contentCol = document.getElementById('content-column');
+                
                 const btnS = document.getElementById('btn-mode-study');
                 const btnP = document.getElementById('btn-mode-practice');
+                const btnL = document.getElementById('btn-mode-learning');
+                
+                // Reset buttons
+                [btnS, btnP, btnL].forEach(btn => {
+                    btn.classList.replace('text-gray-900', 'text-gray-500');
+                    btn.classList.remove('bg-gray-100', 'shadow-sm');
+                });
+
+                // Hide all sections
+                study.classList.add('hidden'); 
+                practice.classList.add('hidden');
+                learning.classList.add('hidden');
+
+                // Activate requested mode
                 if(mode === 'study') {
-                    study.classList.remove('hidden'); practice.classList.add('hidden');
-                    btnS.classList.replace('text-gray-500', 'text-gray-900'); btnS.classList.replace('bg-white', 'bg-gray-100'); btnS.classList.add('shadow-sm');
-                    btnP.classList.remove('shadow-sm', 'bg-gray-100', 'text-gray-900'); btnP.classList.add('text-gray-500');
-                } else {
-                    study.classList.add('hidden'); practice.classList.remove('hidden');
-                    btnP.classList.replace('text-gray-500', 'text-gray-900'); btnP.classList.add('bg-gray-100', 'shadow-sm');
-                    btnS.classList.remove('shadow-sm', 'bg-gray-100', 'text-gray-900'); btnS.classList.add('text-gray-500');
+                    study.classList.remove('hidden');
+                    sideCol.classList.remove('hidden');
+                    contentCol.className = 'lg:col-span-8'; // Sidebar takes 4, content takes 8
+                    
+                    btnS.classList.replace('text-gray-500', 'text-gray-900');
+                    btnS.classList.add('bg-gray-100', 'shadow-sm');
+                } else if(mode === 'practice') {
+                    practice.classList.remove('hidden');
+                    sideCol.classList.remove('hidden');
+                    contentCol.className = 'lg:col-span-8';
+                    
+                    btnP.classList.replace('text-gray-500', 'text-gray-900');
+                    btnP.classList.add('bg-gray-100', 'shadow-sm');
+                } else if(mode === 'learning') {
+                    learning.classList.remove('hidden');
+                    sideCol.classList.add('hidden'); // Hide sidebar to give full width to tutorial
+                    contentCol.className = 'lg:col-span-12'; 
+                    
+                    btnL.classList.replace('text-gray-500', 'text-gray-900');
+                    btnL.classList.add('bg-gray-100', 'shadow-sm');
                 }
             },
             renderTopic(topicKey) {
@@ -446,6 +641,7 @@
                 document.getElementById('concept-card-style').className = `bg-white p-6 rounded-xl shadow-md border-l-4 border-${data.color}-500 sticky top-24 transition-all`;
                 document.getElementById('concept-title').className = `font-bold text-xl mb-4 flex items-center text-${data.color}-900`;
                 document.getElementById('concept-content').innerHTML = data.concepts;
+                document.getElementById('learning-mode-content').innerHTML = `<div class="max-w-3xl mx-auto text-gray-800"><h2 class="text-2xl font-bold mb-4 text-${data.color}-800 flex items-center">🎓 Crash Course: ${data.title}</h2>${data.tutorial}</div>`;
 
                 const qList = document.getElementById('study-mode-content');
                 qList.innerHTML = '';
@@ -515,12 +711,14 @@
                     feedbackEl.innerHTML = "<strong>Correct!</strong> Great job.";
                     solutionEl.classList.remove('hidden');
                     this.markMastery(qId, true);
+                    if(window.MathJax) MathJax.typesetPromise();
                 } else {
                     if(attempts >= 3) {
                         inputEl.classList.add('error'); inputEl.disabled = true;
                         feedbackEl.className = "mt-3 p-3 bg-red-100 text-red-800 rounded block";
                         feedbackEl.innerHTML = "<strong>Incorrect.</strong> No attempts left.";
                         solutionEl.classList.remove('hidden');
+                        if(window.MathJax) MathJax.typesetPromise();
                     } else {
                         inputEl.classList.add('error');
                         setTimeout(() => inputEl.classList.remove('error'), 500);
@@ -533,29 +731,40 @@
                 const feedbackEl = document.getElementById(`feedback-${qId}`);
                 const optsContainer = document.getElementById(`opts-${qId}`);
                 const buttons = optsContainer.querySelectorAll('button');
-                buttons.forEach(btn => btn.disabled = true);
+                
                 if(selectedIdx === correctIdx) {
                     buttons[selectedIdx].classList.add('correct');
+                    // Disable all buttons only when correct answer is found
+                    buttons.forEach(btn => btn.disabled = true);
                     feedbackEl.className = "mt-4 p-3 bg-green-50 border border-green-200 rounded text-green-800 text-sm block";
                     feedbackEl.innerHTML = `<strong>Correct!</strong> ${this.getExplanation(qId)}`;
                     this.markMastery(qId, true);
+                    if(window.MathJax) MathJax.typesetPromise();
                 } else {
                     buttons[selectedIdx].classList.add('wrong');
-                    buttons[correctIdx].classList.add('correct');
-                    feedbackEl.className = "mt-4 p-3 bg-red-50 border border-red-200 rounded text-red-800 text-sm block";
-                    feedbackEl.innerHTML = `<strong>Incorrect.</strong> ${this.getExplanation(qId)}`;
+                    buttons[selectedIdx].disabled = true; // Disable only the wrong button
+                    feedbackEl.className = "mt-4 p-3 bg-orange-50 border border-orange-200 rounded text-orange-800 text-sm block flex items-center";
+                    feedbackEl.innerHTML = `<span class="mr-2 text-xl">⚠️</span> <strong>Incorrect.</strong> Try again!`;
                 }
             },
             checkPracticeAnswer(btn, isCorrect, qId) {
                 const feedbackCorrect = document.getElementById(`feedback-${qId}`);
                 const feedbackWrong = document.getElementById(`feedback-wrong-${qId}`);
                 const parent = btn.parentElement;
-                const siblings = parent.querySelectorAll('button');
-                siblings.forEach(sib => sib.disabled = true);
+                
                 if(isCorrect) {
-                    btn.classList.add('correct'); feedbackCorrect.classList.remove('hidden'); feedbackWrong.classList.add('hidden');
+                    btn.classList.add('correct'); 
+                    feedbackCorrect.classList.remove('hidden'); 
+                    feedbackWrong.classList.add('hidden');
+                    // Disable all siblings
+                    const siblings = parent.querySelectorAll('button');
+                    siblings.forEach(sib => sib.disabled = true);
+                    if(window.MathJax) MathJax.typesetPromise();
                 } else {
-                    btn.classList.add('wrong'); feedbackWrong.classList.remove('hidden'); feedbackCorrect.classList.add('hidden');
+                    btn.classList.add('wrong'); 
+                    btn.disabled = true; // Disable just this button
+                    feedbackWrong.classList.remove('hidden'); 
+                    feedbackCorrect.classList.add('hidden');
                 }
             },
             generatePracticeQuestion() {
@@ -590,37 +799,13 @@
                     indices.forEach(idx => { 
                         content += `<button class="btn-option" onclick="window.app.checkPracticeAnswer(this, ${idx === q.correct}, '${qId}')">${q.options[idx]}</button>`;
                     });
-                    content += `</div><div id="feedback-${qId}" class="hidden mt-4 p-4 bg-green-100 text-green-900 rounded-lg"><strong>Correct!</strong> ${q.explanation}</div><div id="feedback-wrong-${qId}" class="hidden mt-4 p-4 bg-red-100 text-red-900 rounded-lg"><strong>Incorrect.</strong></div>`;
+                    content += `</div><div id="feedback-${qId}" class="hidden mt-4 p-4 bg-green-100 text-green-900 rounded-lg"><strong>Correct!</strong> ${q.explanation}</div><div id="feedback-wrong-${qId}" class="hidden mt-4 p-4 bg-orange-50 text-orange-900 border border-orange-200 rounded-lg flex items-center"><span class="mr-2 text-xl">⚠️</span> <strong>Incorrect.</strong> Try again!</div>`;
                 }
                 content += `</div>`; card.innerHTML = content; container.appendChild(card);
                 if(window.MathJax) MathJax.typesetPromise();
                 if(q.type === 'chart-gen') setTimeout(() => {
                     const ctx = document.getElementById(q.chartId).getContext('2d');
-                    new Chart(ctx, { 
-                        type: 'line', 
-                        data: { 
-                            labels: q.chartData.labels, 
-                            datasets: [{ 
-                                label: 'f(x)', 
-                                data: q.chartData.data, 
-                                borderColor: '#7c3aed', 
-                                backgroundColor: 'rgba(124, 58, 237, 0.1)', 
-                                borderWidth: 3, 
-                                fill: true, 
-                                tension: 0.4 
-                            }] 
-                        }, 
-                        options: { 
-                            responsive: true, 
-                            maintainAspectRatio: false, 
-                            plugins: { 
-                                legend: { display: false } 
-                            }, 
-                            scales: { 
-                                y: { beginAtZero: true } 
-                            } 
-                        } 
-                    });
+                    new Chart(ctx, { type: 'line', data: { labels: q.chartData.labels, datasets: [{ label: 'f(x)', data: q.chartData.data, borderColor: '#7c3aed', backgroundColor: 'rgba(124, 58, 237, 0.1)', borderWidth: 3, fill: true, tension: 0.4 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } } });
                 }, 50);
             },
             submitPracticeFRQ() {
@@ -642,12 +827,14 @@
                     feedbackEl.className = "mt-3 p-3 bg-green-100 text-green-800 rounded block";
                     feedbackEl.innerHTML = "<strong>Correct!</strong>";
                     solEl.classList.remove('hidden');
+                    if(window.MathJax) MathJax.typesetPromise();
                 } else {
                     if(window.currentPracticeAttempts >= 3) {
                         inputEl.classList.add('error'); inputEl.disabled = true;
                         feedbackEl.className = "mt-3 p-3 bg-red-100 text-red-800 rounded block";
                         feedbackEl.innerHTML = "<strong>Incorrect.</strong> No tries left.";
                         solEl.classList.remove('hidden');
+                        if(window.MathJax) MathJax.typesetPromise();
                     } else {
                         inputEl.classList.add('error'); setTimeout(()=>inputEl.classList.remove('error'), 500);
                         feedbackEl.className = "mt-3 p-3 bg-yellow-50 text-yellow-800 rounded block";
@@ -664,7 +851,7 @@
                 const chart = Chart.getChart("masteryChart"); if(chart) { chart.data.datasets[0].data = [masteredQ, totalQ - masteredQ]; chart.update(); }
             },
             renderOverviewCharts() {
-                 new Chart(document.getElementById('masteryChart'), { type: 'doughnut', data: { labels: ['Mastered', 'Remaining'], datasets: [{ data: [0, 20], backgroundColor: ['#2563eb', '#e5e7eb'], borderWidth: 0 }] }, options: { cutout: '75%', responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } } });
+                 new Chart(document.getElementById('masteryChart'), { type: 'doughnut', data: { labels: ['Mastered', 'Remaining'], datasets: [{ data: [0, 28], backgroundColor: ['#2563eb', '#e5e7eb'], borderWidth: 0 }] }, options: { cutout: '75%', responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } } });
             },
             initStaticChart(chartId) {
                 const ctx = document.getElementById(chartId).getContext('2d');
